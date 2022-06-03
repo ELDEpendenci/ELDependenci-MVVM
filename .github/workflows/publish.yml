@@ -1,0 +1,54 @@
+env:
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+name: Publish Process
+
+# ↓ 自動生成 下載檔案 及 javadoc
+on:
+  push:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Source Code
+        id: checkout-source
+        uses: actions/checkout@v2
+      - uses: eric2788/maven-jar-publish@v2
+        with:
+         java-version: 18
+         pre-release: true
+         body: test
+         upload-module: './example-tutorial-plugin'
+      - name: 'Update javadocs'
+        id: update-javadoc
+        uses: eric2788/push-javadoc-branch@main
+        with:
+          use-maven: true
+          javadocs: javadocs
+  upload_github_pkg:
+    runs-on: ubuntu-latest
+    needs: [ build ]
+    # 用於 上傳 maven pkg 到 github
+    if: ${{ false }}
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: latest-tag
+      - uses: jungwinter/split@v2
+        id: version
+        with:
+          msg: ${{ steps.latest-tag.outputs.tag }}
+          separator: '.'
+      - uses: actions/setup-java@v2
+        if: steps.version.outputs.length == 3
+        with:
+          java-version: '18'
+          distribution: 'adopt'
+      - name: Publish package
+        if: steps.version.outputs.length == 3
+        run: mvn --batch-mode deploy
