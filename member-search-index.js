@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"tutorial.showcase","c":"ExampleService","l":"doSomethingCool()"},{"p":"tutorial.showcase","c":"MyExampleInstallation","l":"putSomeValue(String, String)","u":"putSomeValue(java.lang.String,java.lang.String)"}];updateSearchResults();
