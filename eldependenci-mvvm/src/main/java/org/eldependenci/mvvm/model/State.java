@@ -1,4 +1,4 @@
-package org.eldependenci.mvvm.viewmodel;
+package org.eldependenci.mvvm.model;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -3,12 +3,10 @@ package org.eldependenci.mvvm;
 import com.google.inject.Inject;
 import com.google.inject.Injector;
 import org.bukkit.entity.Player;
-import org.eldependenci.mvvm.view.ViewDescriptor;
 import org.eldependenci.mvvm.viewmodel.ViewModel;
 import org.eldependenci.mvvm.viewmodel.ViewModelBinding;
 
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 public class InventoryManager implements InventoryService{
 
@@ -31,10 +29,10 @@ public class InventoryManager implements InventoryService{
         var bindingView = view.getAnnotation(ViewModelBinding.class);
         if (bindingView == null) throw new IllegalStateException("ViewModel must annotated with @ViewModelBinding.");
         var viewType = bindingView.value();
-        if (!viewType.isAnnotationPresent(ViewDescriptor.class)) throw new IllegalStateException("View must annotated with @ViewDescriptor");
-
-
         var vm = injector.getInstance(view);
+
+        var ins = new ELDGUI<>(vm, viewType);
+
 
     }
 
