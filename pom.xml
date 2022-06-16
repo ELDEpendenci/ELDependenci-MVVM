@@ -5,12 +5,14 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.eldependenci</groupId>
-    <artifactId>example-tutorial-addon</artifactId>
+    <artifactId>eldependenci-vm-module</artifactId>
     <packaging>pom</packaging>
     <version>0.1.1</version>
+
     <modules>
-        <module>example-tutorial-api</module>
-        <module>example-tutorial-plugin</module>
+        <module>eldependenci-vm</module>
+        <module>eldependenci-vm-plugin</module>
+
     </modules>
 
     <repositories>
@@ -28,6 +30,10 @@
         <dependency>
             <groupId>io.papermc.paper</groupId>
             <artifactId>paper-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.eldependenci</groupId>
+            <artifactId>eldependenci-bukkit</artifactId>
         </dependency>
     </dependencies>
 
