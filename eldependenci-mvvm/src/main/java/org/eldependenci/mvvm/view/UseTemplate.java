@@ -1,4 +1,6 @@
-package org.eldependenci.mvvm;
+package org.eldependenci.mvvm.view;
+
+import org.eldependenci.mvvm.InventoryTemplate;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,10 +9,10 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface View {
+public @interface UseTemplate {
 
-    String title();
+    String template();
 
-    String[] patterns();
+    Class<? extends InventoryTemplate> groupResource();
 
 }

@@ -1,4 +1,4 @@
-package org.eldependenci.mvvm;
+package org.eldependenci.mvvm.viewmodel;
 
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryAction;

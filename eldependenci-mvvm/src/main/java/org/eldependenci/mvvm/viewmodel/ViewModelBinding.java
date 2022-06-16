@@ -1,4 +1,6 @@
-package org.eldependenci.mvvm;
+package org.eldependenci.mvvm.viewmodel;
+
+import org.eldependenci.mvvm.view.View;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -7,8 +9,8 @@ import java.lang.annotation.Target;
 
 @Target(ElementType.TYPE)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ForView {
+public @interface ViewModelBinding {
 
-    Class<? extends UIView> value();
+    Class<? extends View> value();
 
 }
