@@ -3,26 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <artifactId>eldependenci-vm-module</artifactId>
+        <artifactId>eldependenci-mvvm-module</artifactId>
         <groupId>org.eldependenci</groupId>
         <version>0.1.1</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>eldependenci-vm-plugin</artifactId>
-
-    <dependencies>
-        <dependency>
-            <groupId>org.eldependenci</groupId>
-            <artifactId>eldependenci-vm</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>compile</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.eldependenci</groupId>
-            <artifactId>eldependenci-addon</artifactId>
-        </dependency>
-    </dependencies>
+    <artifactId>eldependenci-mvvm</artifactId>
 
     <build>
         <resources>
@@ -36,16 +23,14 @@
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-shade-plugin</artifactId>
+                <artifactId>maven-source-plugin</artifactId>
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-deploy-plugin</artifactId>
-                <configuration>
-                    <skip>true</skip>
-                </configuration>
+                <artifactId>maven-javadoc-plugin</artifactId>
             </plugin>
         </plugins>
     </build>
+
 
 </project>

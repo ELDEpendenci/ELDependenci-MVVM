@@ -5,13 +5,13 @@
     <modelVersion>4.0.0</modelVersion>
 
     <groupId>org.eldependenci</groupId>
-    <artifactId>eldependenci-vm-module</artifactId>
+    <artifactId>eldependenci-mvvm-module</artifactId>
     <packaging>pom</packaging>
     <version>0.1.1</version>
 
     <modules>
-        <module>eldependenci-vm</module>
-        <module>eldependenci-vm-plugin</module>
+        <module>eldependenci-mvvm</module>
+        <module>eldependenci-mvvm-plugin</module>
 
     </modules>
 
