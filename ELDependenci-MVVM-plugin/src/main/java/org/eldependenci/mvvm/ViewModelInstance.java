@@ -1,8 +1,6 @@
 package org.eldependenci.mvvm;
 
-import com.ericlam.mc.eld.services.ConfigPoolService;
 import com.ericlam.mc.eld.services.ItemStackService;
-import com.ericlam.mc.eld.services.ReflectionService;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -17,68 +15,64 @@ import org.eldependenci.mvvm.button.UIButtonFactoryImpl;
 import org.eldependenci.mvvm.button.UIButtonItem;
 import org.eldependenci.mvvm.model.State;
 import org.eldependenci.mvvm.model.StateValue;
-import org.eldependenci.mvvm.view.*;
-import org.eldependenci.mvvm.viewmodel.Context;
-import org.eldependenci.mvvm.viewmodel.UISession;
-import org.eldependenci.mvvm.viewmodel.ViewModel;
-import org.eldependenci.mvvm.viewmodel.ViewModelContext;
+import org.eldependenci.mvvm.view.UIButton;
+import org.eldependenci.mvvm.view.UIButtonFactory;
+import org.eldependenci.mvvm.view.UIContext;
+import org.eldependenci.mvvm.view.View;
+import org.eldependenci.mvvm.viewmodel.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.lang.annotation.Annotation;
+import javax.annotation.Nullable;
+import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
-public class ELDGUI<T extends ViewModel, V extends View> {
+public class ViewModelInstance {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(ELDGUI.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(ViewModelInstance.class);
 
-    private final T viewModelInstance;
-    private final V viewInstance;
+    private final ViewModel viewModelInstance;
+    private final View viewInstance;
     private final Inventory nativeInventory;
-
     private final ItemStackService itemStackService;
-    private final ReflectionService reflectionService;
     private final Map<Character, List<Integer>> patternMasks = new HashMap<>();
-    private final Map<String, List<Character>> propertyUpdateMap = new HashMap<>();
-    private final Map<Character, Method> updateMethodMap = new HashMap<>();
+
+    private final Map<String, List<Character>> propertyUpdateMap;
+    private final Map<Character, Method> updateMethodMap;
+    private final Map<RequestMapping, Method> eventHandlerMap;
 
     private final Player owner;
 
-    private final StateInvocationHandler stateHandler = new StateInvocationHandler(this::onPropertyUpdate);
-
+    private final StateInvocationHandler stateHandler;
     private final ViewModelContext viewModelContext = new ELDVMContext();
 
+    private boolean disableUpdate;
 
-
-
-    public ELDGUI(
-            T viewModelInstance,
-            Class<V> viewType,
-            ConfigPoolService configPoolService,
+    public ViewModelInstance(
+            ViewModel viewModelInstance,
+            Class<? extends View> viewType,
             ItemStackService itemStackService,
-            ReflectionService reflectionService,
-            Player player
-    ) {
+            Player player,
+            InventoryTemplate template,
+            Map<String, List<Character>> propertyUpdateMap,
+            Map<Character, Method> updateMethodMap,
+            Map<RequestMapping, Method> eventHandlerMap,
+            @Nullable Field stateField,
+            @Nullable Field contextField,
+            boolean manualStateUpdate
+            ) {
         this.viewModelInstance = viewModelInstance;
         this.itemStackService = itemStackService;
-        this.reflectionService = reflectionService;
         this.owner = player;
+        this.propertyUpdateMap = propertyUpdateMap;
+        this.updateMethodMap = updateMethodMap;
+        this.eventHandlerMap = eventHandlerMap;
+        this.disableUpdate = true;
 
-        InventoryTemplate template;
-        if (viewType.isAnnotationPresent(UseTemplate.class)) {
-            var temp = viewType.getAnnotation(UseTemplate.class);
-            var pool = configPoolService.getGroupConfig(temp.groupResource());
-            template = pool.findById(temp.template()).orElseThrow(() -> new IllegalStateException("Cannot find template: " + temp.template()));
-        } else if (viewType.isAnnotationPresent(ViewDescriptor.class)) {
-            var descriptor = viewType.getAnnotation(ViewDescriptor.class);
-            template = new CodeInventoryTemplate(descriptor);
-        } else {
-            throw new IllegalStateException("view is lack of either @UseTemplate or @ViewDescriptor annotation.");
-        }
+        this.stateHandler = new StateInvocationHandler(this::onPropertyUpdate, this::onManualUpdate, manualStateUpdate);
 
         try {
             this.viewInstance = viewType.getConstructor().newInstance();
@@ -88,12 +82,10 @@ public class ELDGUI<T extends ViewModel, V extends View> {
 
         this.nativeInventory = Bukkit.createInventory(null, template.patterns.size() * 9, ChatColor.translateAlternateColorCodes('&', template.title));
         this.renderFromTemplate(template, itemStackService);
-        this.viewInstance.init(new GlobalUIContext());
-        this.patternRender(viewType);
-
-
-        this.initViewModel(reflectionService, player);
-
+        this.initViewModel(stateField, contextField, player);
+        this.renderViews();
+        this.owner.openInventory(this.nativeInventory);
+        this.disableUpdate = false;
     }
 
     public void onInventoryClick(InventoryClickEvent e) {
@@ -109,76 +101,111 @@ public class ELDGUI<T extends ViewModel, V extends View> {
 
     }
 
-    private void patternRender(Class<V> type){
-        var renderMethods = Arrays.stream(type.getMethods()).filter(f -> f.isAnnotationPresent(RenderView.class)).toList();
-        for (Method method : renderMethods) {
-            var rV = method.getAnnotation(RenderView.class);
-            var annos = reflectionService.getParameterAnnotations(method);
-            for (Annotation[] anno : annos) {
-                var s = Arrays.stream(anno).filter(a -> a.annotationType() == StateValue.class).findFirst();
-                if (s.isEmpty()) continue;
-                var stateValue = (StateValue)s.get();
-                propertyUpdateMap.putIfAbsent(stateValue.value(), new ArrayList<>());
-                propertyUpdateMap.get(stateValue.value()).add(rV.value());
+
+    private void renderViews() {
+
+        this.viewInstance.init(new GlobalUIContext());
+
+        for (Character pattern : updateMethodMap.keySet()) {
+            this.renderView(pattern);
+        }
+    }
+
+    private void renderView(char pattern){
+
+        if (!updateMethodMap.containsKey(pattern)) {
+            LOGGER.warn("no update method found for pattern: {}", pattern);
+            return;
+        }
+
+        var method = updateMethodMap.get(pattern);
+
+        var parameters = method.getParameters();
+
+        var arguments = new Object[parameters.length];
+
+        for (int i = 0; i < parameters.length; i++) {
+            var parameter = parameters[i];
+
+            if (parameter.getType() == UIContext.class) {
+                arguments[i] = new PatternUIContext(pattern);
+                continue;
             }
+
+            var stateValue = parameter.getAnnotation(StateValue.class);
+            if (stateValue == null) {
+                throw new IllegalArgumentException("method parameter must be annotated with @StateValue or with UIContext");
+            }
+
+            var property = stateValue.value();
+            arguments[i] = stateHandler.getState(property, parameter.getType());
+        }
+
+        try {
+            method.invoke(viewModelInstance, arguments);
+        } catch (Exception e) {
+            handleException(e, pattern);
         }
     }
 
 
-
-    private void initViewModel(ReflectionService reflectionService, Player player) {
-
-        var vmFields = reflectionService.getDeclaredFieldsUpTo(viewModelInstance.getClass(), null);
-
-        var stateOpt = vmFields.stream().filter(f -> f.isAnnotationPresent(State.class)).findAny();
-
-        if (stateOpt.isPresent()) {
-
-            var stateHolder = stateOpt.get();
-
-            if (!stateHolder.getType().isInterface()) {
-                throw new IllegalStateException("A StateHolder must be an interface.");
-            }
-
-            var stateHolderIns = Proxy.newProxyInstance(
-                    getClass().getClassLoader(),
-                    new Class[]{stateHolder.getType()},
-                    stateHandler
-            );
-
-            try {
-                stateHolder.setAccessible(true);
-                stateHolder.set(viewModelInstance, stateHolderIns);
-            }catch (IllegalAccessException e) {
-                throw new IllegalStateException(e);
-            }
-
-
-        }
-
-        var contextOpt = vmFields.stream().filter(f -> f.isAnnotationPresent(Context.class)).findAny();
-
-        if (contextOpt.isPresent()){
-            var context = contextOpt.get();
-            if (context.getType() != ViewModelContext.class){
-                throw new IllegalStateException("the field annotated with @Context must be ViewModelContext.class");
-            }
-            try {
-                context.setAccessible(true);
-                context.set(viewModelInstance, viewModelContext);
-            } catch (IllegalAccessException e) {
-                throw new IllegalStateException(e);
-            }
-        }
-
-        viewModelInstance.mounted(player);
-        viewModelInstance.initState();
-
+    private void handleException(Exception e, char pattern){
+        LOGGER.error("error while invoking update method for pattern {}: {}", pattern, e.getMessage());
+        e.printStackTrace();
+        var ctx = new PatternUIContext(pattern);
+        var btn = ctx.createButton();
+        ctx.fill(btn.decorate(f -> f.material(Material.BARRIER).display("&cError").lore("&c" + e.getMessage())).create());
     }
 
 
-    private void onPropertyUpdate(String property){
+    private void initViewModel(@Nullable Field stateField, @Nullable Field contextField, Player player) {
 
+        if (stateField != null){
+            try {
+                stateField.set(viewModelInstance, Proxy.newProxyInstance(
+                        viewModelInstance.getClass().getClassLoader(),
+                        new Class[]{State.class},
+                        stateHandler
+                ));
+            } catch (Exception e) {
+                throw new IllegalStateException("error while setting state field", e);
+            }
+        }
+
+        if (contextField != null){
+            try {
+                contextField.set(viewModelInstance, viewModelContext);
+            } catch (Exception e) {
+                throw new IllegalStateException("error while setting context field", e);
+            }
+        }
+
+        viewModelInstance.init(player);
+    }
+
+
+    private void onPropertyUpdate(String property) {
+
+        if (disableUpdate) return;
+
+        if (!propertyUpdateMap.containsKey(property)) {
+            LOGGER.warn("no update method found for property: {}", property);
+            return;
+        }
+
+        var characters = propertyUpdateMap.get(property);
+
+        for (char pattern : characters) {
+            this.renderView(pattern);
+        }
+    }
+
+
+    private void onManualUpdate(Queue<String> properties){
+        while (!properties.isEmpty()){
+            var property = properties.poll();
+            this.onPropertyUpdate(property);
+        }
     }
 
     private void renderFromTemplate(InventoryTemplate demoInventories, ItemStackService itemStackService) {

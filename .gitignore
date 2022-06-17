@@ -5,3 +5,5 @@
 **/*.iml
 /javadocs/
 **/dependency-reduced-pom.xml
+
+example-**

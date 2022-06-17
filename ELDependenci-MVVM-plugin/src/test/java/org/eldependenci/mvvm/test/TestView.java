@@ -3,10 +3,10 @@ package org.eldependenci.mvvm.test;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.TextComponent;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.eldependenci.mvvm.model.State;
-import org.eldependenci.mvvm.model.StateHolder;
 import org.eldependenci.mvvm.model.StateValue;
 import org.eldependenci.mvvm.view.RenderView;
 import org.eldependenci.mvvm.view.UIContext;
@@ -17,7 +17,7 @@ import org.eldependenci.mvvm.viewmodel.*;
 public class TestView {
 
 
-    interface MyStateHolder{
+    interface MyStateHolder {
 
         void setName(String name);
 
@@ -43,16 +43,16 @@ public class TestView {
         private MyStateHolder stateHolder;
 
         @ClickMapping('A')
-        public void onNameClick(InventoryClickEvent event){
-            if (event.getClick() != ClickType.MIDDLE){
+        public void onNameClick(InventoryClickEvent event) {
+            if (event.getClick() != ClickType.MIDDLE) {
                 stateHolder.setName(SELECTIONS[selector++]);
-                if(selector >= SELECTIONS.length){
+                if (selector >= SELECTIONS.length) {
                     selector = 0;
                 }
-            }else{
+            } else {
                 event.getWhoClicked().sendMessage("please enter your name.");
                 viewModelContext.observeEvent(AsyncChatEvent.class, 200L, e -> {
-                    var input = ((TextComponent)e.message()).content();
+                    var input = ((TextComponent) e.message()).content();
                     stateHolder.setName(input);
                 });
             }
@@ -74,7 +74,7 @@ public class TestView {
         }
 
         @Override
-        public void initState() {
+        public void init(Player player) {
             stateHolder.setName("John");
             stateHolder.setAge(30);
         }
@@ -95,7 +95,9 @@ public class TestView {
         public void renderName(UIContext ctx, @StateValue("name") String name) {
             var btn = ctx.createButton();
             ctx.add(
-                    btn.decorate(f -> f.material(Material.REDSTONE).display("&aName: &f" + name)).create()
+                    btn.decorate(f -> f.material(Material.REDSTONE)
+                                    .display("&aName: &f" + name))
+                            .create()
             );
         }
 
@@ -103,15 +105,19 @@ public class TestView {
         public void renderAge(UIContext ctx, @StateValue("age") int age) {
             var btn = ctx.createButton();
             ctx.add(
-                    btn.decorate(f -> f.material(Material.REDSTONE).display("&eAge: &f" + age)).create()
+                    btn.decorate(f -> f.material(Material.REDSTONE)
+                                    .display("&eAge: &f" + age))
+                            .create()
             );
         }
 
         @RenderView('C')
-        public void renderButton(UIContext ctx){
+        public void renderButton(UIContext ctx) {
             var btn = ctx.createButton();
             ctx.add(
-                    btn.decorate(f -> f.material(Material.REDSTONE).display("&bSUBMIT")).create()
+                    btn.decorate(f -> f.material(Material.REDSTONE)
+                                    .display("&bSUBMIT"))
+                            .create()
             );
         }
 
