@@ -1,18 +1,18 @@
-package org.eldependenci.mvvm;
+package org.eldependenci.mvvm.ui;
 
 import org.bukkit.Bukkit;
+import org.eldependenci.mvvm.ELDMVVMPlugin;
 
+import javax.lang.model.type.PrimitiveType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
-import java.util.ArrayDeque;
-import java.util.List;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.function.Consumer;
 
-public class StateInvocationHandler implements InvocationHandler {
+public final class StateInvocationHandler implements InvocationHandler {
 
 
     private final Queue<String> updateQueue = new ConcurrentLinkedDeque<>();
@@ -34,9 +34,9 @@ public class StateInvocationHandler implements InvocationHandler {
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
         if (method.getName().startsWith("set")) {
             var property = method.getName().substring(3).toLowerCase();
-            if (args.length != 1) throw new IllegalArgumentException("setter method must have exactly one argument.");
+            if (args == null || args.length != 1) throw new IllegalArgumentException("setter method must have exactly one argument.");
             this.stateMap.put(property, args[0]);
-            if (!manual){
+            if (!manual) {
                 runTaskOrNot(() -> this.onPropertyUpdate.accept(property));
             } else {
                 this.updateQueue.offer(property);
@@ -44,15 +44,15 @@ public class StateInvocationHandler implements InvocationHandler {
             return null;
         } else if (method.getName().startsWith("get")) {
             var property = method.getName().substring(3).toLowerCase();
-            if (args.length != 0) throw new IllegalArgumentException("getter method must not have any arguments");
-            return method.getReturnType().cast(this.stateMap.get(property));
+            if (args != null && args.length != 0) throw new IllegalArgumentException("getter method must not have any arguments");
+            return getState(property, method.getReturnType());
         } else if (method.getName().equals("notifyStateChanged")) {
             runTaskOrNot(() -> {
                 this.manualUpdate.accept(this.updateQueue);
                 this.updateQueue.clear();
             });
             return null;
-        }else {
+        } else {
             throw new IllegalArgumentException("unknown method handling: " + method.getName());
         }
     }
@@ -63,13 +63,16 @@ public class StateInvocationHandler implements InvocationHandler {
     }
 
     public <T> T getState(String property, Class<T> type) {
+        if (type.isPrimitive()){
+            return getState(property);
+        }
         return type.cast(stateMap.get(property));
     }
 
-    private void runTaskOrNot(Runnable runnable){
-        if (Bukkit.isPrimaryThread()){
+    private void runTaskOrNot(Runnable runnable) {
+        if (Bukkit.isPrimaryThread()) {
             runnable.run();
-        }else{
+        } else {
             Bukkit.getScheduler().runTask(ELDMVVMPlugin.getPlugin(ELDMVVMPlugin.class), runnable);
         }
     }

@@ -20,7 +20,7 @@ jobs:
          java-version: 18
          pre-release: true
          body: test
-         upload-module: './example-tutorial-plugin'
+         upload-module: './ELDependenci-MVVM-plugin'
       - name: 'Update javadocs'
         id: update-javadoc
         uses: eric2788/push-javadoc-branch@main

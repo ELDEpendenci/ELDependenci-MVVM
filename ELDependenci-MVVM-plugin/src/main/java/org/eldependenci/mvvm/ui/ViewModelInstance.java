@@ -1,25 +1,36 @@
-package org.eldependenci.mvvm;
+package org.eldependenci.mvvm.ui;
 
 import com.ericlam.mc.eld.services.ItemStackService;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Cancellable;
+import org.bukkit.event.EventPriority;
+import org.bukkit.event.HandlerList;
+import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.inventory.InventoryInteractEvent;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.scheduler.BukkitTask;
+import org.eldependenci.mvvm.ELDMVVMPlugin;
+import org.eldependenci.mvvm.InventoryTemplate;
+import org.eldependenci.mvvm.ViewRedirection;
 import org.eldependenci.mvvm.button.UIButtonFactoryImpl;
 import org.eldependenci.mvvm.button.UIButtonItem;
-import org.eldependenci.mvvm.model.State;
 import org.eldependenci.mvvm.model.StateValue;
 import org.eldependenci.mvvm.view.UIButton;
 import org.eldependenci.mvvm.view.UIButtonFactory;
 import org.eldependenci.mvvm.view.UIContext;
 import org.eldependenci.mvvm.view.View;
-import org.eldependenci.mvvm.viewmodel.*;
+import org.eldependenci.mvvm.viewmodel.RequestMapping;
+import org.eldependenci.mvvm.viewmodel.UISession;
+import org.eldependenci.mvvm.viewmodel.ViewModel;
+import org.eldependenci.mvvm.viewmodel.ViewModelContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -38,20 +49,27 @@ public class ViewModelInstance {
     private final View viewInstance;
     private final Inventory nativeInventory;
     private final ItemStackService itemStackService;
-    private final Map<Character, List<Integer>> patternMasks = new HashMap<>();
-
+    private final Map<Character, List<Integer>> patternMasks;
     private final Map<String, List<Character>> propertyUpdateMap;
     private final Map<Character, Method> updateMethodMap;
     private final Map<RequestMapping, Method> eventHandlerMap;
-
+    private final Map<Character, Boolean> cancelledMap;
     private final Player owner;
-
     private final StateInvocationHandler stateHandler;
     private final ViewModelContext viewModelContext = new ELDVMContext();
-
+    private final GlobalUIContext globalUIContext = new GlobalUIContext();
+    private final ELDMVVMPlugin plugin = ELDMVVMPlugin.getPlugin(ELDMVVMPlugin.class);
+    private final UISession session;
+    private final ViewRedirection redirection;
+    private final Consumer<Player> onDestroy;
     private boolean disableUpdate;
+    private boolean doNotDestroyView = false;
+    private BukkitTask waitingTask = null;
 
     public ViewModelInstance(
+            UISession session,
+            ViewRedirection redirection,
+            Consumer<Player> onDestroy,
             ViewModel viewModelInstance,
             Class<? extends View> viewType,
             ItemStackService itemStackService,
@@ -60,16 +78,23 @@ public class ViewModelInstance {
             Map<String, List<Character>> propertyUpdateMap,
             Map<Character, Method> updateMethodMap,
             Map<RequestMapping, Method> eventHandlerMap,
+            Map<Character, List<Integer>> patternMasks,
+            Map<Character, Boolean> cancelledMap,
             @Nullable Field stateField,
             @Nullable Field contextField,
             boolean manualStateUpdate
-            ) {
+    ) {
         this.viewModelInstance = viewModelInstance;
         this.itemStackService = itemStackService;
         this.owner = player;
         this.propertyUpdateMap = propertyUpdateMap;
         this.updateMethodMap = updateMethodMap;
         this.eventHandlerMap = eventHandlerMap;
+        this.patternMasks = patternMasks;
+        this.cancelledMap = cancelledMap;
+        this.session = session;
+        this.redirection = redirection;
+        this.onDestroy = onDestroy;
         this.disableUpdate = true;
 
         this.stateHandler = new StateInvocationHandler(this::onPropertyUpdate, this::onManualUpdate, manualStateUpdate);
@@ -89,29 +114,74 @@ public class ViewModelInstance {
     }
 
     public void onInventoryClick(InventoryClickEvent e) {
+        var eventHandlerOpt = this.eventHandlerMap.entrySet()
+                .stream()
+                .filter(en -> {
+                    var mapping = en.getKey();
+                    return mapping.event() == InventoryClickEvent.class &&
+                            e.getClickedInventory() == this.nativeInventory &&
+                            e.getWhoClicked() == this.owner &&
+                            patternMasks.getOrDefault(mapping.pattern(), Collections.emptyList()).contains(e.getSlot());
+                })
+                .findAny();
 
+        if (eventHandlerOpt.isEmpty()) return;
+        var eventHandler = eventHandlerOpt.get();
+        this.handleEvent(eventHandler, e);
     }
 
 
     public void onInventoryDrag(InventoryDragEvent e) {
+        var eventHandlerOpt = this.eventHandlerMap.entrySet()
+                .stream()
+                .filter(en -> {
+                    var mapping = en.getKey();
+                    return mapping.event() == InventoryDragEvent.class &&
+                            e.getInventory() == this.nativeInventory &&
+                            e.getWhoClicked() == this.owner &&
+                            patternMasks.getOrDefault(mapping.pattern(), Collections.emptyList()).stream().anyMatch(s -> e.getInventorySlots().contains(s));
+                })
+                .findAny();
+        if (eventHandlerOpt.isEmpty()) return;
+        var eventHandler = eventHandlerOpt.get();
+        this.handleEvent(eventHandler, e);
+    }
 
+    private void handleEvent(Map.Entry<RequestMapping, Method> eventHandler, InventoryInteractEvent e) {
+        var pattern = eventHandler.getKey().pattern();
+        var method = eventHandler.getValue();
+        if (cancelledMap.get(pattern)){
+            e.setCancelled(true);
+        }
+        try {
+            method.invoke(this.viewModelInstance, e);
+        } catch (Exception ex) {
+            handleException(ex, pattern);
+        }
     }
 
     public void onInventoryClose(InventoryCloseEvent e) {
-
+        if (doNotDestroyView) return;
+        this.destroyView();
     }
 
 
     private void renderViews() {
 
-        this.viewInstance.init(new GlobalUIContext());
+        this.viewInstance.init(globalUIContext);
 
         for (Character pattern : updateMethodMap.keySet()) {
             this.renderView(pattern);
         }
     }
 
-    private void renderView(char pattern){
+    private void renderView(char pattern) {
+
+        var slots = patternMasks.get(pattern);
+        if (slots == null) {
+            LOGGER.warn("pattern {} is not defined in template", pattern);
+            return;
+        }
 
         if (!updateMethodMap.containsKey(pattern)) {
             LOGGER.warn("no update method found for pattern: {}", pattern);
@@ -138,33 +208,43 @@ public class ViewModelInstance {
             }
 
             var property = stateValue.value();
-            arguments[i] = stateHandler.getState(property, parameter.getType());
+            arguments[i] = stateHandler.getState(property);
         }
 
         try {
-            method.invoke(viewModelInstance, arguments);
+            // clear items of that pattern first
+            for (Integer slot : slots) {
+                nativeInventory.setItem(slot, null);
+            }
+            // render items
+            method.invoke(viewInstance, arguments);
         } catch (Exception e) {
             handleException(e, pattern);
         }
     }
 
 
-    private void handleException(Exception e, char pattern){
+    private void handleException(Exception e, char pattern) {
         LOGGER.error("error while invoking update method for pattern {}: {}", pattern, e.getMessage());
         e.printStackTrace();
         var ctx = new PatternUIContext(pattern);
         var btn = ctx.createButton();
-        ctx.fill(btn.decorate(f -> f.material(Material.BARRIER).display("&cError").lore("&c" + e.getMessage())).create());
+        ctx.fill(btn.decorate(f -> f.material(Material.BARRIER)
+                .display("&cError: "+e.getClass().getSimpleName())
+                .lore("&c" + e.getMessage()))
+                .create());
+        cancelledMap.put(pattern, true);
     }
 
 
     private void initViewModel(@Nullable Field stateField, @Nullable Field contextField, Player player) {
 
-        if (stateField != null){
+        if (stateField != null) {
             try {
+                stateField.setAccessible(true);
                 stateField.set(viewModelInstance, Proxy.newProxyInstance(
                         viewModelInstance.getClass().getClassLoader(),
-                        new Class[]{State.class},
+                        new Class[]{stateField.getType()},
                         stateHandler
                 ));
             } catch (Exception e) {
@@ -172,8 +252,9 @@ public class ViewModelInstance {
             }
         }
 
-        if (contextField != null){
+        if (contextField != null) {
             try {
+                contextField.setAccessible(true);
                 contextField.set(viewModelInstance, viewModelContext);
             } catch (Exception e) {
                 throw new IllegalStateException("error while setting context field", e);
@@ -201,25 +282,20 @@ public class ViewModelInstance {
     }
 
 
-    private void onManualUpdate(Queue<String> properties){
-        while (!properties.isEmpty()){
+    private void onManualUpdate(Queue<String> properties) {
+        Set<Character> toUpdate = new HashSet<>();
+        while (!properties.isEmpty()) {
             var property = properties.poll();
-            this.onPropertyUpdate(property);
+            if (!propertyUpdateMap.containsKey(property)) continue;
+            var patterns = propertyUpdateMap.get(property);
+            toUpdate.addAll(patterns);
+        }
+        for (Character pattern : toUpdate) {
+            this.renderView(pattern);
         }
     }
 
     private void renderFromTemplate(InventoryTemplate demoInventories, ItemStackService itemStackService) {
-        this.patternMasks.clear();
-        int line = 0;
-        for (String mask : demoInventories.patterns) {
-            var masks = Arrays.copyOf(mask.toCharArray(), 9);
-            for (int i = 0; i < masks.length; i++) {
-                patternMasks.putIfAbsent(masks[i], new ArrayList<>());
-                final int slots = i + 9 * line;
-                patternMasks.get(masks[i]).add(slots);
-            }
-            line++;
-        }
         for (String pattern : demoInventories.items.keySet()) {
             if (!this.patternMasks.containsKey(pattern.charAt(0))) continue;
             var slots = this.patternMasks.get(pattern.charAt(0));
@@ -235,6 +311,14 @@ public class ViewModelInstance {
                 this.nativeInventory.setItem(slot, item);
             }
         }
+    }
+
+
+    public void destroyView() {
+        if (waitingTask != null && !waitingTask.isCancelled()) waitingTask.cancel();
+        viewModelInstance.beforeUnMount(owner);
+        this.nativeInventory.clear();
+        this.onDestroy.accept(owner);
     }
 
     private class GlobalUIContext implements UIContext {
@@ -267,6 +351,18 @@ public class ViewModelInstance {
             return new UIButtonFactoryImpl(itemStackService);
         }
 
+
+        public List<ItemStack> getItems(char pattern) {
+            if (!patternMasks.containsKey(pattern)) return List.of();
+            var slots = patternMasks.get(pattern);
+            var items = new ArrayList<ItemStack>();
+            for (Integer slot : slots) {
+                var item = nativeInventory.getItem(slot);
+                if (item != null && item.getType().isAir()) items.add(item);
+            }
+            return items;
+        }
+
     }
 
     private class PatternUIContext implements UIContext {
@@ -294,7 +390,7 @@ public class ViewModelInstance {
         private boolean add(UIButton button) {
             for (Integer slot : masks) {
                 var exist = nativeInventory.getItem(slot);
-                if (exist != null && exist.getType() == Material.AIR) continue;
+                if (exist != null && exist.getType().isAir()) continue;
                 nativeInventory.setItem(slot, ((UIButtonItem) button).item());
                 return true;
             }
@@ -329,18 +425,54 @@ public class ViewModelInstance {
     private class ELDVMContext implements ViewModelContext {
 
         @Override
-        public <E extends PlayerEvent> void observeEvent(Class<E> event, long timeout, Consumer<E> callback) {
+        public List<ItemStack> getItems(char pattern) {
+            return globalUIContext.getItems(pattern);
+        }
 
+        @Override
+        public <E extends PlayerEvent> void observeEvent(Class<E> event, long timeout, Consumer<E> callback) {
+            var listener = new Listener() {
+            };
+            Runnable cancelListener = () -> {
+                HandlerList.unregisterAll(listener);
+                owner.openInventory(nativeInventory);
+                doNotDestroyView = false;
+                if (waitingTask != null && !waitingTask.isCancelled()) waitingTask.cancel();
+                waitingTask = null;
+            };
+            doNotDestroyView = true;
+            owner.closeInventory();
+            plugin.getServer().getPluginManager().registerEvent(event, listener, EventPriority.NORMAL,
+                    (listen, e) -> {
+                        if (e.getClass() != event) return;
+                        E realEvent = event.cast(e);
+                        if (realEvent.getPlayer() != owner) return;
+                        if (e instanceof Cancellable canceller) {
+                            canceller.setCancelled(true);
+                        }
+                        if (e.isAsynchronous()) {
+                            Bukkit.getScheduler().runTask(plugin, () -> {
+                                callback.accept(realEvent);
+                                cancelListener.run();
+                            });
+                        } else {
+                            callback.accept(realEvent);
+                            cancelListener.run();
+                        }
+                    },
+                    plugin);
+            waitingTask = Bukkit.getScheduler().runTaskLater(plugin, cancelListener, timeout);
         }
 
         @Override
         public <VM extends ViewModel> void navigateTo(Class<VM> view) {
-
+            destroyView();
+            Bukkit.getScheduler().runTask(plugin, () -> redirection.redirect(view, owner, session));
         }
 
         @Override
         public UISession getSession() {
-            return null;
+            return session;
         }
     }
 
