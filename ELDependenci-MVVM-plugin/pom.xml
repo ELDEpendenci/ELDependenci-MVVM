@@ -9,7 +9,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>eldependenci-mvvm-plugin</artifactId>
+    <artifactId>ELDEpendenci-MVVM-plugin</artifactId>
 
     <dependencies>
         <dependency>

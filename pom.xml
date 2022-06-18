@@ -11,8 +11,7 @@
 
     <modules>
         <module>eldependenci-mvvm</module>
-        <module>eldependenci-mvvm-plugin</module>
-
+        <module>ELDEpendenci-MVVM-plugin</module>
     </modules>
 
     <repositories>
