@@ -11,11 +11,12 @@ import org.eldependenci.mvvm.MVVMInstaller;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Commander(
         name = "open",
         description = "打開界面指令",
-        permission = "demo.use",
+        permission = "mvvm.open",
         playerOnly = true
 )
 public class MVVMOpenCommand implements CommandNode {

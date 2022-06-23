@@ -40,9 +40,8 @@ public final class InventoryManager implements InventoryService {
         this.viewModelMap = installer.getViewBindingMap();
     }
 
-
     @Override
-    public void openUI(Player player, Class<? extends ViewModel> view) {
+    public void openUI(Player player, Class<? extends ViewModel> view, Map<String, Object> context) {
         var bindingView = view.getAnnotation(ViewModelBinding.class);
         if (bindingView == null) throw new IllegalStateException("ViewModel must annotated with @ViewModelBinding.");
         var viewType = bindingView.value();
@@ -57,18 +56,28 @@ public final class InventoryManager implements InventoryService {
             plugin.getServer().getPluginManager().registerEvents(di, plugin);
             return di;
         });
-        dispatcher.openFor(player);
+        dispatcher.openFor(player, s -> context.forEach(s::setAttribute));
+    }
+
+    @Override
+    public void openUI(Player player, Class<? extends ViewModel> view) {
+        this.openUI(player, view, Map.of());
     }
 
     @Override
     public void openUI(Player player, String vmId) {
+        this.openUI(player, vmId, Map.of());
+    }
+
+    @Override
+    public void openUI(Player player, String vmId, Map<String, Object> context) {
         var viewModelType = viewModelMap.get(vmId);
         if (viewModelType == null) {
             player.sendMessage(lang.getLang().getF("ui-not-found", vmId));
             plugin.getLogger().warning(String.format("unknown GUI id %s, ignored", vmId));
             return;
         }
-        this.openUI(player, viewModelType);
+        this.openUI(player, viewModelType, context);
     }
 
 
