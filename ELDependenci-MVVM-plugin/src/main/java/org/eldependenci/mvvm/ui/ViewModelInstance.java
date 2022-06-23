@@ -363,6 +363,17 @@ public class ViewModelInstance {
             return items;
         }
 
+        public Map<Integer, ItemStack> getItemMap(char pattern){
+            if (!patternMasks.containsKey(pattern)) return Map.of();
+            var slots = patternMasks.get(pattern);
+            var map = new HashMap<Integer, ItemStack>();
+            for (Integer slot : slots) {
+                var item = nativeInventory.getItem(slot);
+                map.put(slot, item);
+            }
+            return map;
+        }
+
     }
 
     private class PatternUIContext implements UIContext {
@@ -427,6 +438,11 @@ public class ViewModelInstance {
         @Override
         public List<ItemStack> getItems(char pattern) {
             return globalUIContext.getItems(pattern);
+        }
+
+        @Override
+        public Map<Integer, ItemStack> getItemMap(char pattern) {
+            return globalUIContext.getItemMap(pattern);
         }
 
         @Override
