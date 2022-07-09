@@ -2,3 +2,4 @@ name: ELDependenci-MVVM
 main: org.eldependenci.mvvm.ELDMVVMPlugin
 version: ${project.version}
 depend: [ELDependenci]
+api-version: "1.18"

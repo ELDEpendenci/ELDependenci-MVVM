@@ -1,0 +1,6 @@
+title: "&eTime"
+patterns:
+  - AABAAACAA
+items:
+  A:
+    material: BLACK_STAINED_GLASS_PANE

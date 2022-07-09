@@ -5,6 +5,7 @@ import org.eldependenci.mvvm.config.MVVMConfig;
 import org.eldependenci.mvvm.config.MVVMLang;
 import org.eldependenci.mvvm.demo.DemoTemplate;
 import org.eldependenci.mvvm.demo.profile.ProfileViewModel;
+import org.eldependenci.mvvm.demo.time.TimeViewModel;
 import org.eldependenci.mvvm.ui.InventoryManager;
 
 @ELDBukkit(
@@ -21,6 +22,7 @@ public class ELDMVVMPlugin extends ELDBukkitPlugin {
 
         if (config.showDemo){
             installer.bindId("profile", ProfileViewModel.class);
+            installer.bindId("time", TimeViewModel.class);
         }
     }
 

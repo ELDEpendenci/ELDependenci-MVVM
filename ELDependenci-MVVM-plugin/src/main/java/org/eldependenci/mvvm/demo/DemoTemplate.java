@@ -5,7 +5,7 @@ import org.eldependenci.mvvm.InventoryTemplate;
 
 @GroupResource(
         folder = "Demo",
-        preloads = { "profile" }
+        preloads = { "profile", "time" }
 )
 public final class DemoTemplate extends InventoryTemplate {
 }

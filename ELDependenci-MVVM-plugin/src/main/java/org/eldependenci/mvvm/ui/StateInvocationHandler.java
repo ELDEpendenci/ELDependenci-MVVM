@@ -3,13 +3,14 @@ package org.eldependenci.mvvm.ui;
 import org.bukkit.Bukkit;
 import org.eldependenci.mvvm.ELDMVVMPlugin;
 
-import javax.lang.model.type.PrimitiveType;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 public final class StateInvocationHandler implements InvocationHandler {
@@ -17,17 +18,23 @@ public final class StateInvocationHandler implements InvocationHandler {
 
     private final Queue<String> updateQueue = new ConcurrentLinkedDeque<>();
     private final Map<String, Object> stateMap = new ConcurrentHashMap<>();
-
-
-    private final Consumer<String> onPropertyUpdate;
-    private final Consumer<Queue<String>> manualUpdate;
+    private final Consumer<Queue<String>> updateHandler;
     private final boolean manual;
+    private boolean autoUpdate;
 
 
-    public StateInvocationHandler(Consumer<String> onPropertyUpdate, Consumer<Queue<String>> manualUpdate, boolean manual) {
-        this.onPropertyUpdate = onPropertyUpdate;
-        this.manualUpdate = manualUpdate;
+    public StateInvocationHandler(Consumer<Queue<String>> updateHandler, boolean manual) {
+        this.updateHandler = updateHandler;
         this.manual = manual;
+        this.autoUpdate = !manual;
+    }
+
+    public synchronized boolean isAutoUpdate() {
+        return autoUpdate;
+    }
+
+    public synchronized void setAutoUpdate(boolean autoUpdate) {
+        this.autoUpdate = autoUpdate;
     }
 
     @Override
@@ -36,10 +43,9 @@ public final class StateInvocationHandler implements InvocationHandler {
             var property = method.getName().substring(3).toLowerCase();
             if (args == null || args.length != 1) throw new IllegalArgumentException("setter method must have exactly one argument.");
             this.stateMap.put(property, args[0]);
-            if (!manual) {
-                runTaskOrNot(() -> this.onPropertyUpdate.accept(property));
-            } else {
-                this.updateQueue.offer(property);
+            this.updateQueue.offer(property);
+            if (autoUpdate && !manual) {
+                this.notifyStateChanged();
             }
             return null;
         } else if (method.getName().startsWith("get")) {
@@ -47,14 +53,18 @@ public final class StateInvocationHandler implements InvocationHandler {
             if (args != null && args.length != 0) throw new IllegalArgumentException("getter method must not have any arguments");
             return getState(property, method.getReturnType());
         } else if (method.getName().equals("notifyStateChanged")) {
-            runTaskOrNot(() -> {
-                this.manualUpdate.accept(this.updateQueue);
-                this.updateQueue.clear();
-            });
+            this.notifyStateChanged();
             return null;
         } else {
             throw new IllegalArgumentException("unknown method handling: " + method.getName());
         }
+    }
+
+    public void notifyStateChanged(){
+        runTaskOrNot(() -> {
+            this.updateHandler.accept(this.updateQueue);
+            this.updateQueue.clear();
+        });
     }
 
     @SuppressWarnings("unchecked")

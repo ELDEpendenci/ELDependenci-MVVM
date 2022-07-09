@@ -9,10 +9,7 @@ import org.bukkit.event.Cancellable;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.HandlerList;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryInteractEvent;
+import org.bukkit.event.inventory.*;
 import org.bukkit.event.player.PlayerEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -97,7 +94,7 @@ public class ViewModelInstance {
         this.onDestroy = onDestroy;
         this.disableUpdate = true;
 
-        this.stateHandler = new StateInvocationHandler(this::onPropertyUpdate, this::onManualUpdate, manualStateUpdate);
+        this.stateHandler = new StateInvocationHandler(this::onStateChanged, manualStateUpdate);
 
         try {
             this.viewInstance = viewType.getConstructor().newInstance();
@@ -114,6 +111,28 @@ public class ViewModelInstance {
     }
 
     public void onInventoryClick(InventoryClickEvent e) {
+
+        if (e.getSlotType() == InventoryType.SlotType.OUTSIDE){
+            return;
+        }
+
+        if (e.getClickedInventory() != nativeInventory) {
+            return;
+        }
+
+        var patternOpt = patternMasks.entrySet().
+                stream()
+                .filter(en -> en.getValue().contains(e.getSlot()))
+                .map(Map.Entry::getKey)
+                .findAny();
+        if (patternOpt.isEmpty()){
+            LOGGER.warn("unknown pattern in slot: {}, view: {}", e.getSlot(), viewInstance.getClass().getName());
+            return;
+        }
+        var pattern = patternOpt.get();
+        if (cancelledMap.get(pattern)){
+            e.setCancelled(true);
+        }
         var eventHandlerOpt = this.eventHandlerMap.entrySet()
                 .stream()
                 .filter(en -> {
@@ -121,10 +140,9 @@ public class ViewModelInstance {
                     return mapping.event() == InventoryClickEvent.class &&
                             e.getClickedInventory() == this.nativeInventory &&
                             e.getWhoClicked() == this.owner &&
-                            patternMasks.getOrDefault(mapping.pattern(), Collections.emptyList()).contains(e.getSlot());
+                            mapping.pattern() == pattern;
                 })
                 .findAny();
-
         if (eventHandlerOpt.isEmpty()) return;
         var eventHandler = eventHandlerOpt.get();
         this.handleEvent(eventHandler, e);
@@ -150,11 +168,13 @@ public class ViewModelInstance {
     private void handleEvent(Map.Entry<RequestMapping, Method> eventHandler, InventoryInteractEvent e) {
         var pattern = eventHandler.getKey().pattern();
         var method = eventHandler.getValue();
-        if (cancelledMap.get(pattern)){
-            e.setCancelled(true);
-        }
         try {
-            method.invoke(this.viewModelInstance, e);
+            synchronized (this){
+                stateHandler.setAutoUpdate(false);
+                method.invoke(this.viewModelInstance, e);
+                stateHandler.notifyStateChanged();
+                stateHandler.setAutoUpdate(true);
+            }
         } catch (Exception ex) {
             handleException(ex, pattern);
         }
@@ -264,25 +284,8 @@ public class ViewModelInstance {
         viewModelInstance.init(player);
     }
 
-
-    private void onPropertyUpdate(String property) {
-
+    private void onStateChanged(Queue<String> properties) {
         if (disableUpdate) return;
-
-        if (!propertyUpdateMap.containsKey(property)) {
-            LOGGER.warn("no update method found for property: {}", property);
-            return;
-        }
-
-        var characters = propertyUpdateMap.get(property);
-
-        for (char pattern : characters) {
-            this.renderView(pattern);
-        }
-    }
-
-
-    private void onManualUpdate(Queue<String> properties) {
         Set<Character> toUpdate = new HashSet<>();
         while (!properties.isEmpty()) {
             var property = properties.poll();
