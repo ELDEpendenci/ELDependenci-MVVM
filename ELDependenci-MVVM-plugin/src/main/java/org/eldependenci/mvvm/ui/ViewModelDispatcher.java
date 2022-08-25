@@ -34,6 +34,7 @@ import java.util.function.Function;
 public class ViewModelDispatcher implements Listener {
 
     private static final Map<Player, UISession> sessionMap = new ConcurrentHashMap<>();
+    @SuppressWarnings("unchecked")
     private static final Class<? extends Annotation>[] EVENT_TYPES = new Class[]{ClickMapping.class, DragMapping.class, RequestMapping.class};
     private static final Set<Function<Method, RequestMapping>> REQUEST_MAPPERS = Set.of(
             method -> method.getAnnotation(RequestMapping.class),

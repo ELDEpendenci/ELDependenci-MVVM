@@ -11,7 +11,6 @@ import org.eldependenci.mvvm.MVVMInstaller;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Commander(
         name = "open",

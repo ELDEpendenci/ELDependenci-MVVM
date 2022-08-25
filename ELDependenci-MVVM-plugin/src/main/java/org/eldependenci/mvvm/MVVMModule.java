@@ -3,7 +3,6 @@ package org.eldependenci.mvvm;
 import com.google.inject.AbstractModule;
 import com.google.inject.Scopes;
 import org.eldependenci.mvvm.demo.profile.ProfileService;
-import org.eldependenci.mvvm.ui.InventoryManager;
 
 public class MVVMModule extends AbstractModule  {
 
