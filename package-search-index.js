@@ -1,1 +1,1 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"tutorial.showcase"}];updateSearchResults();
+packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"org.eldependenci.mvvm"},{"l":"org.eldependenci.mvvm.model"},{"l":"org.eldependenci.mvvm.view"},{"l":"org.eldependenci.mvvm.viewmodel"}];updateSearchResults();

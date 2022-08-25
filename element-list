@@ -1,1 +1,4 @@
-tutorial.showcase
+org.eldependenci.mvvm
+org.eldependenci.mvvm.model
+org.eldependenci.mvvm.view
+org.eldependenci.mvvm.viewmodel
