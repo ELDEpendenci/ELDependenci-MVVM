@@ -1,5 +1,6 @@
 package org.eldependenci.mvvm;
 
+import com.ericlam.mc.eld.components.GroupConfiguration;
 import org.bukkit.Material;
 
 import java.util.ArrayList;
@@ -7,7 +8,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class InventoryTemplate {
+public class InventoryTemplate extends GroupConfiguration {
 
     public String title;
 

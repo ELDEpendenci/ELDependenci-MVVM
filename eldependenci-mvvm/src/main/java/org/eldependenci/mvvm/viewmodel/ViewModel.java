@@ -4,9 +4,7 @@ import org.bukkit.entity.Player;
 
 public interface ViewModel {
 
-    void initState();
-
-    default void mounted(Player player){}
+    void init(Player player);
 
     default void beforeUnMount(Player player){}
 

@@ -2,6 +2,7 @@ package org.eldependenci.mvvm;
 
 import com.google.inject.AbstractModule;
 import com.google.inject.Scopes;
+import org.eldependenci.mvvm.demo.profile.ProfileService;
 
 public class MVVMModule extends AbstractModule  {
 
@@ -13,7 +14,7 @@ public class MVVMModule extends AbstractModule  {
 
     @Override
     protected void configure() {
+        bind(ProfileService.class).in(Scopes.SINGLETON); // test only
         bind(MVVMInstaller.class).toInstance(installer);
-        bind(InventoryService.class).to(InventoryManager.class).in(Scopes.SINGLETON);
     }
 }

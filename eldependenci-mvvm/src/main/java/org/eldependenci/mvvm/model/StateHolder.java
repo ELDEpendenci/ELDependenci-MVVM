@@ -1,4 +1,7 @@
 package org.eldependenci.mvvm.model;
 
-public interface StateHolder{
+public interface StateHolder {
+
+    void notifyStateChanged();
+
 }

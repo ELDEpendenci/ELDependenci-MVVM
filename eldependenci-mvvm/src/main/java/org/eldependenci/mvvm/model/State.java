@@ -1,14 +1,13 @@
-package org.eldependenci.mvvm.viewmodel;
+package org.eldependenci.mvvm.model;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.lang.annotation.Target;
 
-@Target(ElementType.METHOD)
+@Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-public @interface ClickMapping {
-
-    char value();
+public @interface State {
+    boolean manual() default false;
 
 }

@@ -1,0 +1,12 @@
+title: "&eYour Profile"
+patterns:
+  - AABAAACAA
+  - AAAAWAAAA
+items:
+  A:
+    material: BLACK_STAINED_GLASS_PANE
+  W:
+    material: DIAMOND_BLOCK
+    name: "&eSubmit"
+    lore:
+      - "&eClick to submit your profile"
