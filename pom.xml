@@ -162,7 +162,7 @@
         <repository>
             <id>github</id>
             <name>Github ELDependenci Apache Maven Packages</name>
-            <url>https://maven.pkg.github.com/ELDependenci/template-for-eldependenci-addon</url>
+            <url>https://maven.pkg.github.com/ELDependenci/eldependenci-mvvm</url>
             <uniqueVersion>false</uniqueVersion>
         </repository>
     </distributionManagement>
