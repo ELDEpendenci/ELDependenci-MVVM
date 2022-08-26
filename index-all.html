@@ -101,13 +101,9 @@ loadScripts(document, 'script');</script>
 </dl>
 <h2 class="title" id="I:G">G</h2>
 <dl class="index">
-<dt><a href="org/eldependenci/mvvm/viewmodel/UISession.html#getAttribute(java.lang.String)" class="member-name-link">getAttribute(String)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/UISession.html" title="interface in org.eldependenci.mvvm.viewmodel">UISession</a></dt>
-<dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html#getItemMap(char)" class="member-name-link">getItemMap(char)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html" title="interface in org.eldependenci.mvvm.viewmodel">ViewModelContext</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html#getItems(char)" class="member-name-link">getItems(char)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html" title="interface in org.eldependenci.mvvm.viewmodel">ViewModelContext</a></dt>
-<dd>&nbsp;</dd>
-<dt><a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html#getSession()" class="member-name-link">getSession()</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html" title="interface in org.eldependenci.mvvm.viewmodel">ViewModelContext</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/view/UseTemplate.html#groupResource()" class="member-name-link">groupResource()</a> - Element in annotation interface org.eldependenci.mvvm.view.<a href="org/eldependenci/mvvm/view/UseTemplate.html" title="annotation interface in org.eldependenci.mvvm.view">UseTemplate</a></dt>
 <dd>&nbsp;</dd>
@@ -153,6 +149,8 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html#navigateTo(java.lang.Class)" class="member-name-link">navigateTo(Class&lt;V&gt;)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html" title="interface in org.eldependenci.mvvm.viewmodel">ViewModelContext</a></dt>
 <dd>&nbsp;</dd>
+<dt><a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html#navigateTo(java.lang.Class,java.util.Map)" class="member-name-link">navigateTo(Class&lt;V&gt;, Map&lt;String, Object&gt;)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/ViewModelContext.html" title="interface in org.eldependenci.mvvm.viewmodel">ViewModelContext</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/model/StateHolder.html#notifyStateChanged()" class="member-name-link">notifyStateChanged()</a> - Method in interface org.eldependenci.mvvm.model.<a href="org/eldependenci/mvvm/model/StateHolder.html" title="interface in org.eldependenci.mvvm.model">StateHolder</a></dt>
 <dd>&nbsp;</dd>
 </dl>
@@ -167,6 +165,8 @@ loadScripts(document, 'script');</script>
 <dt><a href="org/eldependenci/mvvm/InventoryService.html#openUI(org.bukkit.entity.Player,java.lang.String)" class="member-name-link">openUI(Player, String)</a> - Method in interface org.eldependenci.mvvm.<a href="org/eldependenci/mvvm/InventoryService.html" title="interface in org.eldependenci.mvvm">InventoryService</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/InventoryService.html#openUI(org.bukkit.entity.Player,java.lang.String,java.util.Map)" class="member-name-link">openUI(Player, String, Map&lt;String, Object&gt;)</a> - Method in interface org.eldependenci.mvvm.<a href="org/eldependenci/mvvm/InventoryService.html" title="interface in org.eldependenci.mvvm">InventoryService</a></dt>
+<dd>&nbsp;</dd>
+<dt><a href="org/eldependenci/mvvm/model/PropValue.html#optional()" class="member-name-link">optional()</a> - Element in annotation interface org.eldependenci.mvvm.model.<a href="org/eldependenci/mvvm/model/PropValue.html" title="annotation interface in org.eldependenci.mvvm.model">PropValue</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/package-summary.html">org.eldependenci.mvvm</a> - package org.eldependenci.mvvm</dt>
 <dd>&nbsp;</dd>
@@ -185,7 +185,7 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/view/ViewDescriptor.html#patterns()" class="member-name-link">patterns()</a> - Element in annotation interface org.eldependenci.mvvm.view.<a href="org/eldependenci/mvvm/view/ViewDescriptor.html" title="annotation interface in org.eldependenci.mvvm.view">ViewDescriptor</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="org/eldependenci/mvvm/viewmodel/UISession.html#pollAttribute(java.lang.String)" class="member-name-link">pollAttribute(String)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/UISession.html" title="interface in org.eldependenci.mvvm.viewmodel">UISession</a></dt>
+<dt><a href="org/eldependenci/mvvm/model/PropValue.html" class="type-name-link" title="annotation interface in org.eldependenci.mvvm.model">PropValue</a> - Annotation Interface in <a href="org/eldependenci/mvvm/model/package-summary.html">org.eldependenci.mvvm.model</a></dt>
 <dd>&nbsp;</dd>
 </dl>
 <h2 class="title" id="I:R">R</h2>
@@ -198,8 +198,6 @@ loadScripts(document, 'script');</script>
 <h2 class="title" id="I:S">S</h2>
 <dl class="index">
 <dt><a href="org/eldependenci/mvvm/view/UIContext.html#set(int,org.eldependenci.mvvm.view.UIButton)" class="member-name-link">set(int, UIButton)</a> - Method in interface org.eldependenci.mvvm.view.<a href="org/eldependenci/mvvm/view/UIContext.html" title="interface in org.eldependenci.mvvm.view">UIContext</a></dt>
-<dd>&nbsp;</dd>
-<dt><a href="org/eldependenci/mvvm/viewmodel/UISession.html#setAttribute(java.lang.String,java.lang.Object)" class="member-name-link">setAttribute(String, Object)</a> - Method in interface org.eldependenci.mvvm.viewmodel.<a href="org/eldependenci/mvvm/viewmodel/UISession.html" title="interface in org.eldependenci.mvvm.viewmodel">UISession</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/model/State.html" class="type-name-link" title="annotation interface in org.eldependenci.mvvm.model">State</a> - Annotation Interface in <a href="org/eldependenci/mvvm/model/package-summary.html">org.eldependenci.mvvm.model</a></dt>
 <dd>&nbsp;</dd>
@@ -225,13 +223,13 @@ loadScripts(document, 'script');</script>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/view/UIContext.html" class="type-name-link" title="interface in org.eldependenci.mvvm.view">UIContext</a> - Interface in <a href="org/eldependenci/mvvm/view/package-summary.html">org.eldependenci.mvvm.view</a></dt>
 <dd>&nbsp;</dd>
-<dt><a href="org/eldependenci/mvvm/viewmodel/UISession.html" class="type-name-link" title="interface in org.eldependenci.mvvm.viewmodel">UISession</a> - Interface in <a href="org/eldependenci/mvvm/viewmodel/package-summary.html">org.eldependenci.mvvm.viewmodel</a></dt>
-<dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/view/UseTemplate.html" class="type-name-link" title="annotation interface in org.eldependenci.mvvm.view">UseTemplate</a> - Annotation Interface in <a href="org/eldependenci/mvvm/view/package-summary.html">org.eldependenci.mvvm.view</a></dt>
 <dd>&nbsp;</dd>
 </dl>
 <h2 class="title" id="I:V">V</h2>
 <dl class="index">
+<dt><a href="org/eldependenci/mvvm/model/PropValue.html#value()" class="member-name-link">value()</a> - Element in annotation interface org.eldependenci.mvvm.model.<a href="org/eldependenci/mvvm/model/PropValue.html" title="annotation interface in org.eldependenci.mvvm.model">PropValue</a></dt>
+<dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/model/StateValue.html#value()" class="member-name-link">value()</a> - Element in annotation interface org.eldependenci.mvvm.model.<a href="org/eldependenci/mvvm/model/StateValue.html" title="annotation interface in org.eldependenci.mvvm.model">StateValue</a></dt>
 <dd>&nbsp;</dd>
 <dt><a href="org/eldependenci/mvvm/view/RenderView.html#value()" class="member-name-link">value()</a> - Element in annotation interface org.eldependenci.mvvm.view.<a href="org/eldependenci/mvvm/view/RenderView.html" title="annotation interface in org.eldependenci.mvvm.view">RenderView</a></dt>

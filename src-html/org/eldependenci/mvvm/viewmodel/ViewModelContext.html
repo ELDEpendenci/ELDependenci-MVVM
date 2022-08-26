@@ -21,17 +21,18 @@
 <span class="source-line-no">008</span><span id="line-8">import java.util.function.Consumer;</span>
 <span class="source-line-no">009</span><span id="line-9"></span>
 <span class="source-line-no">010</span><span id="line-10">public interface ViewModelContext {</span>
-<span class="source-line-no">011</span><span id="line-11">    List&lt;ItemStack&gt; getItems(char pattern);</span>
-<span class="source-line-no">012</span><span id="line-12"></span>
-<span class="source-line-no">013</span><span id="line-13">    Map&lt;Integer, ItemStack&gt; getItemMap(char pattern);</span>
-<span class="source-line-no">014</span><span id="line-14"></span>
-<span class="source-line-no">015</span><span id="line-15">    &lt;E extends PlayerEvent&gt; void observeEvent(Class&lt;E&gt; event, long timeout, Consumer&lt;E&gt; callback);</span>
-<span class="source-line-no">016</span><span id="line-16"></span>
-<span class="source-line-no">017</span><span id="line-17">    &lt;V extends ViewModel&gt; void navigateTo(Class&lt;V&gt; view);</span>
-<span class="source-line-no">018</span><span id="line-18"></span>
-<span class="source-line-no">019</span><span id="line-19">    UISession getSession();</span>
-<span class="source-line-no">020</span><span id="line-20"></span>
-<span class="source-line-no">021</span><span id="line-21">}</span>
+<span class="source-line-no">011</span><span id="line-11"></span>
+<span class="source-line-no">012</span><span id="line-12">    List&lt;ItemStack&gt; getItems(char pattern);</span>
+<span class="source-line-no">013</span><span id="line-13"></span>
+<span class="source-line-no">014</span><span id="line-14">    Map&lt;Integer, ItemStack&gt; getItemMap(char pattern);</span>
+<span class="source-line-no">015</span><span id="line-15"></span>
+<span class="source-line-no">016</span><span id="line-16">    &lt;E extends PlayerEvent&gt; void observeEvent(Class&lt;E&gt; event, long timeout, Consumer&lt;E&gt; callback);</span>
+<span class="source-line-no">017</span><span id="line-17"></span>
+<span class="source-line-no">018</span><span id="line-18">    &lt;V extends ViewModel&gt; void navigateTo(Class&lt;V&gt; view);</span>
+<span class="source-line-no">019</span><span id="line-19"></span>
+<span class="source-line-no">020</span><span id="line-20">    &lt;V extends ViewModel&gt; void navigateTo(Class&lt;V&gt; view, Map&lt;String, Object&gt; props);</span>
+<span class="source-line-no">021</span><span id="line-21"></span>
+<span class="source-line-no">022</span><span id="line-22">}</span>
 
 
 
