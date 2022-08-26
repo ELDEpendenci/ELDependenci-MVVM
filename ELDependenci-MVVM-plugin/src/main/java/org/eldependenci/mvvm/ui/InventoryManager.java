@@ -41,7 +41,7 @@ public final class InventoryManager implements InventoryService {
     }
 
     @Override
-    public void openUI(Player player, Class<? extends ViewModel> view, Map<String, Object> context) {
+    public void openUI(Player player, Class<? extends ViewModel> view, Map<String, Object> props) {
         var bindingView = view.getAnnotation(ViewModelBinding.class);
         if (bindingView == null) throw new IllegalStateException("ViewModel must annotated with @ViewModelBinding.");
         var viewType = bindingView.value();
@@ -56,7 +56,7 @@ public final class InventoryManager implements InventoryService {
             plugin.getServer().getPluginManager().registerEvents(di, plugin);
             return di;
         });
-        dispatcher.openFor(player, s -> context.forEach(s::setAttribute));
+        dispatcher.openFor(player, props);
     }
 
     @Override

@@ -1,6 +1,8 @@
 package org.eldependenci.mvvm.ui;
 
 import com.ericlam.mc.eld.services.ItemStackService;
+import com.google.common.base.Defaults;
+
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -19,13 +21,13 @@ import org.eldependenci.mvvm.InventoryTemplate;
 import org.eldependenci.mvvm.ViewRedirection;
 import org.eldependenci.mvvm.button.UIButtonFactoryImpl;
 import org.eldependenci.mvvm.button.UIButtonItem;
+import org.eldependenci.mvvm.model.PropValue;
 import org.eldependenci.mvvm.model.StateValue;
 import org.eldependenci.mvvm.view.UIButton;
 import org.eldependenci.mvvm.view.UIButtonFactory;
 import org.eldependenci.mvvm.view.UIContext;
 import org.eldependenci.mvvm.view.View;
 import org.eldependenci.mvvm.viewmodel.RequestMapping;
-import org.eldependenci.mvvm.viewmodel.UISession;
 import org.eldependenci.mvvm.viewmodel.ViewModel;
 import org.eldependenci.mvvm.viewmodel.ViewModelContext;
 import org.slf4j.Logger;
@@ -56,7 +58,7 @@ public class ViewModelInstance {
     private final ViewModelContext viewModelContext = new ELDVMContext();
     private final GlobalUIContext globalUIContext = new GlobalUIContext();
     private final ELDMVVMPlugin plugin = ELDMVVMPlugin.getPlugin(ELDMVVMPlugin.class);
-    private final UISession session;
+    private final Map<String, Object> props;
     private final ViewRedirection redirection;
     private final Consumer<Player> onDestroy;
     private boolean disableUpdate;
@@ -64,7 +66,7 @@ public class ViewModelInstance {
     private BukkitTask waitingTask = null;
 
     public ViewModelInstance(
-            UISession session,
+            Map<String, Object> props,
             ViewRedirection redirection,
             Consumer<Player> onDestroy,
             ViewModel viewModelInstance,
@@ -79,8 +81,7 @@ public class ViewModelInstance {
             Map<Character, Boolean> cancelledMap,
             @Nullable Field stateField,
             @Nullable Field contextField,
-            boolean manualStateUpdate
-    ) {
+            boolean manualStateUpdate) {
         this.viewModelInstance = viewModelInstance;
         this.itemStackService = itemStackService;
         this.owner = player;
@@ -89,7 +90,7 @@ public class ViewModelInstance {
         this.eventHandlerMap = eventHandlerMap;
         this.patternMasks = patternMasks;
         this.cancelledMap = cancelledMap;
-        this.session = session;
+        this.props = props;
         this.redirection = redirection;
         this.onDestroy = onDestroy;
         this.disableUpdate = true;
@@ -112,7 +113,7 @@ public class ViewModelInstance {
 
     public void onInventoryClick(InventoryClickEvent e) {
 
-        if (e.getSlotType() == InventoryType.SlotType.OUTSIDE){
+        if (e.getSlotType() == InventoryType.SlotType.OUTSIDE) {
             return;
         }
 
@@ -120,17 +121,16 @@ public class ViewModelInstance {
             return;
         }
 
-        var patternOpt = patternMasks.entrySet().
-                stream()
+        var patternOpt = patternMasks.entrySet().stream()
                 .filter(en -> en.getValue().contains(e.getSlot()))
                 .map(Map.Entry::getKey)
                 .findAny();
-        if (patternOpt.isEmpty()){
+        if (patternOpt.isEmpty()) {
             LOGGER.warn("unknown pattern in slot: {}, view: {}", e.getSlot(), viewInstance.getClass().getName());
             return;
         }
         var pattern = patternOpt.get();
-        if (cancelledMap.get(pattern)){
+        if (cancelledMap.get(pattern)) {
             e.setCancelled(true);
         }
         var eventHandlerOpt = this.eventHandlerMap.entrySet()
@@ -143,11 +143,11 @@ public class ViewModelInstance {
                             mapping.pattern() == pattern;
                 })
                 .findAny();
-        if (eventHandlerOpt.isEmpty()) return;
+        if (eventHandlerOpt.isEmpty())
+            return;
         var eventHandler = eventHandlerOpt.get();
         this.handleEvent(eventHandler, e);
     }
-
 
     public void onInventoryDrag(InventoryDragEvent e) {
         var eventHandlerOpt = this.eventHandlerMap.entrySet()
@@ -157,10 +157,12 @@ public class ViewModelInstance {
                     return mapping.event() == InventoryDragEvent.class &&
                             e.getInventory() == this.nativeInventory &&
                             e.getWhoClicked() == this.owner &&
-                            patternMasks.getOrDefault(mapping.pattern(), Collections.emptyList()).stream().anyMatch(s -> e.getInventorySlots().contains(s));
+                            patternMasks.getOrDefault(mapping.pattern(), Collections.emptyList()).stream()
+                                    .anyMatch(s -> e.getInventorySlots().contains(s));
                 })
                 .findAny();
-        if (eventHandlerOpt.isEmpty()) return;
+        if (eventHandlerOpt.isEmpty())
+            return;
         var eventHandler = eventHandlerOpt.get();
         this.handleEvent(eventHandler, e);
     }
@@ -169,7 +171,7 @@ public class ViewModelInstance {
         var pattern = eventHandler.getKey().pattern();
         var method = eventHandler.getValue();
         try {
-            synchronized (this){
+            synchronized (this) {
                 stateHandler.setAutoUpdate(false);
                 method.invoke(this.viewModelInstance, e);
                 stateHandler.notifyStateChanged();
@@ -181,10 +183,10 @@ public class ViewModelInstance {
     }
 
     public void onInventoryClose(InventoryCloseEvent e) {
-        if (doNotDestroyView) return;
+        if (doNotDestroyView)
+            return;
         this.destroyView();
     }
-
 
     private void renderViews() {
 
@@ -223,12 +225,27 @@ public class ViewModelInstance {
             }
 
             var stateValue = parameter.getAnnotation(StateValue.class);
-            if (stateValue == null) {
-                throw new IllegalArgumentException("method parameter must be annotated with @StateValue or with UIContext");
-            }
+            var propValue = parameter.getAnnotation(PropValue.class);
+            if (stateValue != null) {
+                var property = stateValue.value();
+                arguments[i] = stateHandler.getState(property);
+            } else if (propValue != null) {
+                var propKey = propValue.value();
+                Object value = props.get(propKey);
 
-            var property = stateValue.value();
-            arguments[i] = stateHandler.getState(property);
+                if (value == null && !propValue.optional()){
+                    throw new IllegalStateException(String.format("props: %s is not optional and not assigned.", propKey));
+                }
+
+                if (parameter.getType().isPrimitive()){
+                    arguments[i] = value == null ? Defaults.defaultValue(parameter.getType()) : parameter.getType().cast(value);
+                } else {
+                    arguments[i] = parameter.getType().cast(value);
+                }
+                
+            } else {
+                throw new IllegalArgumentException("method parameter must be annotated with @StateValue, @PropValue or with UIContext");
+            }
         }
 
         try {
@@ -243,19 +260,17 @@ public class ViewModelInstance {
         }
     }
 
-
     private void handleException(Exception e, char pattern) {
         LOGGER.error("error while invoking update method for pattern {}: {}", pattern, e.getMessage());
         e.printStackTrace();
         var ctx = new PatternUIContext(pattern);
         var btn = ctx.createButton();
         ctx.fill(btn.decorate(f -> f.material(Material.BARRIER)
-                .display("&cError: "+e.getClass().getSimpleName())
+                .display("&cError: " + e.getClass().getSimpleName())
                 .lore("&c" + e.getMessage()))
                 .create());
         cancelledMap.put(pattern, true);
     }
-
 
     private void initViewModel(@Nullable Field stateField, @Nullable Field contextField, Player player) {
 
@@ -264,9 +279,8 @@ public class ViewModelInstance {
                 stateField.setAccessible(true);
                 stateField.set(viewModelInstance, Proxy.newProxyInstance(
                         viewModelInstance.getClass().getClassLoader(),
-                        new Class[]{stateField.getType()},
-                        stateHandler
-                ));
+                        new Class[] { stateField.getType() },
+                        stateHandler));
             } catch (Exception e) {
                 throw new IllegalStateException("error while setting state field", e);
             }
@@ -285,11 +299,13 @@ public class ViewModelInstance {
     }
 
     private void onStateChanged(Queue<String> properties) {
-        if (disableUpdate) return;
+        if (disableUpdate)
+            return;
         Set<Character> toUpdate = new HashSet<>();
         while (!properties.isEmpty()) {
             var property = properties.poll();
-            if (!propertyUpdateMap.containsKey(property)) continue;
+            if (!propertyUpdateMap.containsKey(property))
+                continue;
             var patterns = propertyUpdateMap.get(property);
             toUpdate.addAll(patterns);
         }
@@ -300,15 +316,19 @@ public class ViewModelInstance {
 
     private void renderFromTemplate(InventoryTemplate demoInventories, ItemStackService itemStackService) {
         for (String pattern : demoInventories.items.keySet()) {
-            if (!this.patternMasks.containsKey(pattern.charAt(0))) continue;
+            if (!this.patternMasks.containsKey(pattern.charAt(0)))
+                continue;
             var slots = this.patternMasks.get(pattern.charAt(0));
             var itemDescriptor = demoInventories.items.get(pattern);
             var itemBuilder = itemStackService
                     .build(itemDescriptor.material)
                     .amount(itemDescriptor.amount);
-            if (!itemDescriptor.name.isBlank()) itemBuilder.display(itemDescriptor.name);
-            if (!itemDescriptor.lore.isEmpty()) itemBuilder.lore(itemDescriptor.lore);
-            if (itemDescriptor.data > 0) itemBuilder.modelData(itemDescriptor.data);
+            if (!itemDescriptor.name.isBlank())
+                itemBuilder.display(itemDescriptor.name);
+            if (!itemDescriptor.lore.isEmpty())
+                itemBuilder.lore(itemDescriptor.lore);
+            if (itemDescriptor.data > 0)
+                itemBuilder.modelData(itemDescriptor.data);
             var item = itemBuilder.getItem();
             for (Integer slot : slots) {
                 this.nativeInventory.setItem(slot, item);
@@ -316,9 +336,9 @@ public class ViewModelInstance {
         }
     }
 
-
     public void destroyView() {
-        if (waitingTask != null && !waitingTask.isCancelled()) waitingTask.cancel();
+        if (waitingTask != null && !waitingTask.isCancelled())
+            waitingTask.cancel();
         viewModelInstance.beforeUnMount(owner);
         this.nativeInventory.clear();
         this.onDestroy.accept(owner);
@@ -354,20 +374,22 @@ public class ViewModelInstance {
             return new UIButtonFactoryImpl(itemStackService);
         }
 
-
         public List<ItemStack> getItems(char pattern) {
-            if (!patternMasks.containsKey(pattern)) return List.of();
+            if (!patternMasks.containsKey(pattern))
+                return List.of();
             var slots = patternMasks.get(pattern);
             var items = new ArrayList<ItemStack>();
             for (Integer slot : slots) {
                 var item = nativeInventory.getItem(slot);
-                if (item != null && item.getType().isAir()) items.add(item);
+                if (item != null && item.getType().isAir())
+                    items.add(item);
             }
             return items;
         }
 
-        public Map<Integer, ItemStack> getItemMap(char pattern){
-            if (!patternMasks.containsKey(pattern)) return Map.of();
+        public Map<Integer, ItemStack> getItemMap(char pattern) {
+            if (!patternMasks.containsKey(pattern))
+                return Map.of();
             var slots = patternMasks.get(pattern);
             var map = new HashMap<Integer, ItemStack>();
             for (Integer slot : slots) {
@@ -388,7 +410,8 @@ public class ViewModelInstance {
             this.pattern = pattern;
             this.masks = patternMasks.get(pattern);
             if (this.masks == null)
-                throw new IllegalStateException("unknown pattern in view " + viewInstance.getClass().getSimpleName() + ": " + pattern);
+                throw new IllegalStateException(
+                        "unknown pattern in view " + viewInstance.getClass().getSimpleName() + ": " + pattern);
         }
 
         @Override
@@ -404,7 +427,8 @@ public class ViewModelInstance {
         private boolean add(UIButton button) {
             for (Integer slot : masks) {
                 var exist = nativeInventory.getItem(slot);
-                if (exist != null && exist.getType().isAir()) continue;
+                if (exist != null && exist.getType().isAir())
+                    continue;
                 nativeInventory.setItem(slot, ((UIButtonItem) button).item());
                 return true;
             }
@@ -456,16 +480,19 @@ public class ViewModelInstance {
                 HandlerList.unregisterAll(listener);
                 owner.openInventory(nativeInventory);
                 doNotDestroyView = false;
-                if (waitingTask != null && !waitingTask.isCancelled()) waitingTask.cancel();
+                if (waitingTask != null && !waitingTask.isCancelled())
+                    waitingTask.cancel();
                 waitingTask = null;
             };
             doNotDestroyView = true;
             owner.closeInventory();
             plugin.getServer().getPluginManager().registerEvent(event, listener, EventPriority.NORMAL,
                     (listen, e) -> {
-                        if (e.getClass() != event) return;
+                        if (e.getClass() != event)
+                            return;
                         E realEvent = event.cast(e);
-                        if (realEvent.getPlayer() != owner) return;
+                        if (realEvent.getPlayer() != owner)
+                            return;
                         if (e instanceof Cancellable canceller) {
                             canceller.setCancelled(true);
                         }
@@ -483,15 +510,18 @@ public class ViewModelInstance {
             waitingTask = Bukkit.getScheduler().runTaskLater(plugin, cancelListener, timeout);
         }
 
+        // current props will never go to other view
+        // it should pass it manually
+
         @Override
         public <VM extends ViewModel> void navigateTo(Class<VM> view) {
-            destroyView();
-            Bukkit.getScheduler().runTask(plugin, () -> redirection.redirect(view, owner, session));
+            this.navigateTo(view, Map.of());
         }
 
         @Override
-        public UISession getSession() {
-            return session;
+        public <V extends ViewModel> void navigateTo(Class<V> view, Map<String, Object> props) {
+            destroyView();
+            Bukkit.getScheduler().runTask(plugin, () -> redirection.redirect(view, owner, props));
         }
     }
 
