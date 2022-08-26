@@ -2,6 +2,9 @@ package org.eldependenci.mvvm.test;
 
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.TextComponent;
+
+import java.util.Map;
+
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -74,7 +77,7 @@ public class TestView {
         }
 
         @Override
-        public void init(Player player) {
+        public void init(Player player, Map<String, Object> props) {
             stateHolder.setName("John");
             stateHolder.setAge(30);
         }
