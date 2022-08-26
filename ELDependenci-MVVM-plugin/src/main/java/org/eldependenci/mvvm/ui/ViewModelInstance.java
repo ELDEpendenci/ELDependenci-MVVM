@@ -2,6 +2,7 @@ package org.eldependenci.mvvm.ui;
 
 import com.ericlam.mc.eld.services.ItemStackService;
 import com.google.common.base.Defaults;
+import com.google.common.collect.ImmutableMap;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -295,7 +296,7 @@ public class ViewModelInstance {
             }
         }
 
-        viewModelInstance.init(player);
+        viewModelInstance.init(player, ImmutableMap.copyOf(props));
     }
 
     private void onStateChanged(Queue<String> properties) {

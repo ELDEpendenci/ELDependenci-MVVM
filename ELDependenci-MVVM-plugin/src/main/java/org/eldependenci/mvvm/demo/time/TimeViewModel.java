@@ -11,6 +11,7 @@ import org.eldependenci.mvvm.viewmodel.ViewModelBinding;
 import javax.inject.Inject;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Map;
 
 @ViewModelBinding(TimeView.class)
 public class TimeViewModel implements ViewModel {
@@ -29,7 +30,7 @@ public class TimeViewModel implements ViewModel {
 
 
     @Override
-    public void init(Player player) {
+    public void init(Player player, Map<String, Object> props) {
         holder.setTime(TIME_FORMATTER.format(LocalTime.now()));
         holder.setDuration(0);
     }

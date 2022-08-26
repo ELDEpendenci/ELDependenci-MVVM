@@ -3,6 +3,9 @@ package org.eldependenci.mvvm.demo.profile;
 import com.google.inject.Inject;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.TextComponent;
+
+import java.util.Map;
+
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.eldependenci.mvvm.model.State;
@@ -21,7 +24,7 @@ public class ProfileViewModel implements ViewModel {
     private ProfileStateHolder profileState;
 
     @Override
-    public void init(Player player) {
+    public void init(Player player, Map<String, Object> props) {
         var profile = profileService.getProfile(player.getUniqueId());
         if (profile == null){
             profileState.setName(player.getName());
