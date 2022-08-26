@@ -28,12 +28,10 @@ import java.lang.reflect.Method;
 import java.lang.reflect.Parameter;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 public class ViewModelDispatcher implements Listener {
 
-    private static final Map<Player, UISession> sessionMap = new ConcurrentHashMap<>();
     @SuppressWarnings("unchecked")
     private static final Class<? extends Annotation>[] EVENT_TYPES = new Class[]{ClickMapping.class, DragMapping.class, RequestMapping.class};
     private static final Set<Function<Method, RequestMapping>> REQUEST_MAPPERS = Set.of(
@@ -86,10 +84,7 @@ public class ViewModelDispatcher implements Listener {
         this.injector = injector;
         this.viewModelType = viewModelType;
         this.viewType = viewType;
-        this.viewRedirection = (viewModel, player, session) -> {
-            sessionMap.put(player, session);
-            viewRedirection.redirect(viewModel, player, session);
-        };
+        this.viewRedirection = viewRedirection;
 
         if (viewType.isAnnotationPresent(UseTemplate.class)) {
             var temp = viewType.getAnnotation(UseTemplate.class);
@@ -108,20 +103,14 @@ public class ViewModelDispatcher implements Listener {
     }
 
     public void openFor(Player player){
-        this.openFor(player, s -> {});
+        this.openFor(player, Map.of());
     }
 
 
-    public void openFor(Player player, Consumer<UISession> initSession){
-        UISession session = Optional.ofNullable(sessionMap.remove(player)).orElseGet(() -> {
-            UISession newSession = new MVVMUISession();
-            initSession.accept(newSession);
-            return newSession;
-        });
-
+    public void openFor(Player player, Map<String, Object> props){
         var vm = injector.getInstance(viewModelType);
         var vmIns = new ViewModelInstance(
-                session,
+                props,
                 viewRedirection,
                 uiSessionMap::remove,
                 vm,

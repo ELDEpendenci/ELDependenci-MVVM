@@ -7,7 +7,7 @@
     <groupId>org.eldependenci</groupId>
     <artifactId>eldependenci-mvvm-module</artifactId>
     <packaging>pom</packaging>
-    <version>0.1.1</version>
+    <version>0.1.2-SNAPSHOT</version>
 
     <modules>
         <module>eldependenci-mvvm</module>
@@ -165,7 +165,12 @@
             <url>https://maven.pkg.github.com/ELDependenci/eldependenci-mvvm</url>
             <uniqueVersion>false</uniqueVersion>
         </repository>
+        <snapshotRepository>
+            <id>github</id>
+            <name>Github ELDependenci Apache Maven Packages</name>
+            <url>https://maven.pkg.github.com/ELDependenci/eldependenci-mvvm</url>
+            <uniqueVersion>true</uniqueVersion>
+        </snapshotRepository>
     </distributionManagement>
-
 
 </project>

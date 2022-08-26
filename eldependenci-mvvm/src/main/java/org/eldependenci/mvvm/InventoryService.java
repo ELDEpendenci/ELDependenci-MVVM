@@ -12,6 +12,6 @@ public interface InventoryService {
 
     void openUI(Player player, String vmId);
 
-    void openUI(Player player, String vmId, Map<String, Object> context);
+    void openUI(Player player, String vmId, Map<String, Object> props);
 
 }

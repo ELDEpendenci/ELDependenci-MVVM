@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 public interface ViewModelContext {
+
     List<ItemStack> getItems(char pattern);
 
     Map<Integer, ItemStack> getItemMap(char pattern);
@@ -16,6 +17,6 @@ public interface ViewModelContext {
 
     <V extends ViewModel> void navigateTo(Class<V> view);
 
-    UISession getSession();
+    <V extends ViewModel> void navigateTo(Class<V> view, Map<String, Object> props);
 
 }
