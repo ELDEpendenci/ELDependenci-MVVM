@@ -522,7 +522,7 @@ public class ViewModelInstance {
         @Override
         public <V extends ViewModel> void navigateTo(Class<V> view, Map<String, Object> props) {
             destroyView();
-            Bukkit.getScheduler().runTask(plugin, () -> redirection.redirect(view, owner, props));
+            Bukkit.getScheduler().runTask(plugin, () -> redirection.redirect(owner, view, props));
         }
     }
 

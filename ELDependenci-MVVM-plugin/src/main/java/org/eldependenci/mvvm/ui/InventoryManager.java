@@ -52,10 +52,16 @@ public final class InventoryManager implements InventoryService {
                     itemStackService,
                     reflectionService,
                     injector,
-                    (viewModel, player1, session) -> openUI(player1, viewModel));
+                    this::openUI);
             plugin.getServer().getPluginManager().registerEvents(di, plugin);
             return di;
         });
+        
+        // add internal props
+        props.put("mvvm.user", player.getName());
+        props.put("mvvm.viewModel", view);
+        props.put("mvvm.view", viewType);
+
         dispatcher.openFor(player, props);
     }
 
@@ -70,14 +76,14 @@ public final class InventoryManager implements InventoryService {
     }
 
     @Override
-    public void openUI(Player player, String vmId, Map<String, Object> context) {
+    public void openUI(Player player, String vmId, Map<String, Object> props) {
         var viewModelType = viewModelMap.get(vmId);
         if (viewModelType == null) {
             player.sendMessage(lang.getLang().getF("ui-not-found", vmId));
             plugin.getLogger().warning(String.format("unknown GUI id %s, ignored", vmId));
             return;
         }
-        this.openUI(player, viewModelType, context);
+        this.openUI(player, viewModelType, props);
     }
 
 

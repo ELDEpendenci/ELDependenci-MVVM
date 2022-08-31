@@ -9,6 +9,6 @@ import org.eldependenci.mvvm.viewmodel.ViewModel;
 @FunctionalInterface
 public interface ViewRedirection {
 
-    void redirect(Class<? extends ViewModel> viewModel, Player player, Map<String, Object> props);
+    void redirect(Player player, Class<? extends ViewModel> viewModel, Map<String, Object> props);
 
 }

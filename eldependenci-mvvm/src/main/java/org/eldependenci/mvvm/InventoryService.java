@@ -6,7 +6,8 @@ import org.eldependenci.mvvm.viewmodel.ViewModel;
 import java.util.Map;
 
 public interface InventoryService {
-    void openUI(Player player, Class<? extends ViewModel> view, Map<String, Object> context);
+    
+    void openUI(Player player, Class<? extends ViewModel> view, Map<String, Object> props);
 
     void openUI(Player player, Class<? extends ViewModel> view);
 
