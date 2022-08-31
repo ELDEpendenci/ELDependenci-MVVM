@@ -1,0 +1,3 @@
+[submodule "eldependenci-mvvm-examples"]
+	path = eldependenci-mvvm-examples
+	url = https://github.com/sysnapse/eldependenci-mvvm-examples
